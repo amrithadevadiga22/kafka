@@ -1,0 +1,58 @@
+- hosts: dev
+  become: yes
+  vars:
+    java_download: https://download.oracle.com/otn/java/jdk/8u211-b12/478a62b7d4e34b78b671c754eaaf38ab/jdk-8u211-linux-x64.tar.gz
+    java_name: "{{download_folder}}/jdk1.8.0_112"
+    download_folder: "/tmp"
+    java_archive: "{{download_folder}}/jdk-8u112-linux-x64.tar.gz"
+    java_folder: "/usr/bin/jvm"
+    java_alias: "java-8-oracle"
+    java_controller: "/root/balu/ansi_playbooks/jdk-8u112-linux-x64.tar.gz"
+
+  tasks:
+
+  - name: Install tar
+    yum: pkg=tar
+  - name: Install wget
+    yum: pkg=wget
+
+  - name: Install unzip
+    yum: pkg=unzip
+  - file:
+      path: "{{download_folder}}"
+      owner: root
+      #mode: 0776
+
+#  - name: Download java
+#    get_url: 'url={{java_download}} dest={{download_folder}}'
+  - name: Download Java JDK
+    get_url:
+      url: "{{ java_download }}"
+      #headers: "Cookie:oraclelicense=accept-securebackup-cookie"
+      dest: /tmp
+    #when: not dir.stat.exists
+    #tags:
+    # - java_install
+
+  - name: creating foldder
+    file: "path={{download_folder}} state=directory"
+
+  - name: Download and unpack
+    unarchive:
+      src: "{{download_folder}}/jdk-8u112-linux-x64.tar.gz"
+      dest: "{{download_folder}}/"
+      copy: no
+      owner: root
+     # mode: 0777
+
+  - name: Fix ownership
+    command : "state= directory path={{java_name}} owner=root recurse=yes"
+
+  - name: Move Java to final folder
+    command: "mv {{download_folder}}/{{java_name}} {{java_folder}} creates={{java_folder}}/{{java_name}}"
+
+  - name: Create symlink for easier update
+    file: "state=link src={{java_folder}}/{{java_name}} dest={{java_folder}}/{{java_alias}}"
+
+  - name: Make Java available for system
+    command: 'update-alternatives --install "/usr/bin/java" "java" "{{java_folder}}/{{java_alias}}/bin/java" 1'
